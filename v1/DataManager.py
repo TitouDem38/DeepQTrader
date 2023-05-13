@@ -48,9 +48,9 @@ class DataManager:
             data = None
 
         else:
-            df = self.get_historical_klines(start_stop_day=(1, 24),
-                                            start_stop_month=('Jan', 'Mar'),
-                                            start_stop_year=(2022, 2023),
+            df = self.get_historical_klines(start_stop_day=(1, 25),
+                                            start_stop_month=('Jan', 'Apr'),
+                                            start_stop_year=(2021, 2023),
                                             kline_interval='1d')
 
             data = self.preprocess_data(df)
@@ -114,9 +114,7 @@ class DataManager:
         # Compute technical indicators
 
         # Compute RSIs
-        df['rsi7'] = TA.RSI(df, 7)
         df['rsi14'] = TA.RSI(df, 14)
-        df['rsi21'] = TA.RSI(df, 21)
 
         # Compute MACD
         df['macd'] = TA.MACD(df).MACD
@@ -124,15 +122,17 @@ class DataManager:
         # Compute MAs
         df['ma7'] = TA.SMA(df, 7)
         df['ma14'] = TA.SMA(df, 14)
-        df['ma21'] = TA.SMA(df, 21)
         df['ma50'] = TA.SMA(df, 50)
 
         # Compute CCI
         df['cci'] = TA.CCI(df, 5)
 
+        # Compute volatility
+        df['volatility'] = (df['high'] - df['low']) / df['close']
+
         df = df.replace((np.inf, -np.inf), np.nan).dropna()
 
-        df = df.drop(columns=['time'])
+        df = df.drop(columns=['time', 'open', 'high', 'low'])
 
         if self.normalize:
             df = pd.DataFrame(df / df.max(axis=0),
@@ -196,23 +196,28 @@ def plot_curves(df):
 
     # close
     plt.figure()
-    plt.plot(df['close'])
+    plt.plot(df.iloc[-30:]['close'])
     plt.title('Close')
 
     # rsi7
     plt.figure()
-    plt.plot(df['rsi7'])
+    plt.plot(df.iloc[-30:]['rsi7'])
     plt.title('RSI7')
 
     # cci
     plt.figure()
-    plt.plot(df['cci'])
+    plt.plot(df.iloc[-30:]['cci'])
     plt.title('CCI')
+
+    # volatility
+    plt.figure()
+    plt.plot(df.iloc[-30:]['volatility'])
+    plt.title('Volatility')
 
     plt.show()
 
 
 if __name__ == '__main__':
-    dm = DataManager()
+    dm = DataManager(symbol='MATICUSDT')
 
-    plot_curves(dm.data)
+    dm.data.to_csv('./data/MATICUSDT.csv')
